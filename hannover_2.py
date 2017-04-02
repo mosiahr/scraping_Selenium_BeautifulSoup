@@ -35,11 +35,24 @@ def find_country():
 	return countries
 
 
+def get_html(url):
+	response = urlopen(url)
+	return response.read().decode('utf-8')
+
+
 def get_company(html):
+	comp = []
 	soup = BeautifulSoup(html,'html.parser')
+	# companies = soup.find('div', class_='col l-col7 m-col9 s-col12')
+	# print(companies)
 	companies = soup.find_all('a', class_='search-link')
-	companies = ['{}{}'.format(BASE_URL, el['href']) for el in companies]
-	return companies
+	companies = ['{}{}'.format(SITE_URL, el['href']) for el in companies]
+	# companies = [company for company in companies if companies.index(company)%2 == 0]
+	for company in companies:
+		if company not in comp:
+			comp.append(company)
+	print(len(comp))
+	return comp
 
 
 def get_page(country, sector):
@@ -69,6 +82,14 @@ def get_page(country, sector):
 		# click the Manufacturing industry
 		browser.find_element_by_css_selector('#searchAP\:zb\:35\:r').click()
 
+	elif sector == 'transportation':
+		# change cheack box style by display: block
+		browser.execute_script("document.getElementById('searchAP\:zb\:289\:r').style.display='block';")
+
+		# click the Transportation and storage
+		browser.find_element_by_css_selector('#searchAP\:zb\:289\:r').click()
+
+
 	# click the button: search
 	browser.find_element_by_css_selector('#searchAP\:searchButton2').click()
 
@@ -76,29 +97,29 @@ def get_page(country, sector):
 
 	# add companies to company_pages
 	company_pages.append(get_company(browser.page_source))
-	print(company_pages)
 
-	paginator = browser.find_element_by_css_selector('.pagination-list')
-	last_page = paginator.find_elements_by_xpath('li')[-1:]
-	last_page = last_page[0].text
+	try: 
+		paginator = browser.find_element_by_css_selector('.pagination-list')
+		last_page = paginator.find_elements_by_xpath('li')[-1:]
+		last_page = last_page[0].text
 
-	for page in range(1, int(last_page)):
-		# click the button next-page
-		button_next_page = browser.find_element_by_css_selector('a.button:nth-child(3)')
-		button_next_page.click()
-		time.sleep(5)
-		# add companies to company_pages
-		company_pages.append(get_company(browser.page_source))
-	
+		for page in range(1, int(last_page)):
+			# click the button next-page
+			button_next_page = browser.find_element_by_css_selector('a.button:nth-child(3)')
+			button_next_page.click()
+			time.sleep(5)
+			# add companies to company_pages
+			company_pages.append(get_company(browser.page_source))
+	except :
+		print("Not paginator")
+
 	# browser.quit()
 	# display.stop()	
 
 	return company_pages
 
 
-def get_html(url):
-	response = urlopen(url)
-	return response.read().decode('utf-8')
+
 
 
 if __name__ == '__main__':
@@ -111,11 +132,15 @@ if __name__ == '__main__':
 	# countries = find_country()
 	# print(countries)
 
+
 	pages_all = get_page("Italy", sector='manufacturing')
-	# print(pages_all)
-	# for pages in pages_all[:2]:
+	# pages_all = get_page("Italy", sector='transportation')
+	print(pages_all)
+	# for pages in pages_all:
 	# 	for page in pages:
 	# 		print(page)
+
+	
 
 
 
