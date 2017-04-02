@@ -3,6 +3,7 @@
 
 from pyvirtualdisplay import Display
 from selenium import webdriver
+from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import time
 import re
@@ -33,9 +34,20 @@ def find_country():
 	display.stop()		
 	return countries
 
-def get_search(country):
+
+def get_company(html):
+	soup = BeautifulSoup(html,'html.parser')
+	companies = soup.find_all('a', class_='search-link')
+	companies = ['{}{}'.format(BASE_URL, el['href']) for el in companies]
+	return companies
+
+
+def get_page(country, sector):
+	company_pages = []
+
 	# display = Display(visible=0, size=(800, 600))
 	# display.start()
+
 	browser = webdriver.Firefox()  # Your browser will open, Python might ask for permission
 	browser.get(BASE_URL) 
 
@@ -50,22 +62,43 @@ def get_search(country):
 	show_all = browser.find_elements_by_css_selector('.toggleLimited')
 	show_all[2].click()
 
-	# change cheack box style by display: block
-	browser.execute_script("document.getElementById('searchAP\:zb\:35\:r').style.display='block';")
+	if sector == 'manufacturing':
+		# change cheack box style by display: block
+		browser.execute_script("document.getElementById('searchAP\:zb\:35\:r').style.display='block';")
 
-	# click the Manufacturing industry
-	browser.find_element_by_css_selector('#searchAP\:zb\:35\:r').click()
+		# click the Manufacturing industry
+		browser.find_element_by_css_selector('#searchAP\:zb\:35\:r').click()
 
-	#click the button: search
+	# click the button: search
 	browser.find_element_by_css_selector('#searchAP\:searchButton2').click()
 
 	time.sleep(3)
 
-	soup = BeautifulSoup(browser.page_source,'html.parser')
-	# company_page = soup.find_all('div', class_='content-area col l-col8 m-col9 s-col12')
-	company_pages = soup.find_all('a', class_='search-link')
-	company_pages = ['{}{}'.format(BASE_URL, el['href']) for el in company_pages]
+	# add companies to company_pages
+	company_pages.append(get_company(browser.page_source))
 	print(company_pages)
+
+	paginator = browser.find_element_by_css_selector('.pagination-list')
+	last_page = paginator.find_elements_by_xpath('li')[-1:]
+	last_page = last_page[0].text
+
+	for page in range(1, int(last_page)):
+		# click the button next-page
+		button_next_page = browser.find_element_by_css_selector('a.button:nth-child(3)')
+		button_next_page.click()
+		time.sleep(5)
+		# add companies to company_pages
+		company_pages.append(get_company(browser.page_source))
+	
+	# browser.quit()
+	# display.stop()	
+
+	return company_pages
+
+
+def get_html(url):
+	response = urlopen(url)
+	return response.read().decode('utf-8')
 
 
 if __name__ == '__main__':
@@ -78,7 +111,11 @@ if __name__ == '__main__':
 	# countries = find_country()
 	# print(countries)
 
-	get_search("Italy")
+	pages_all = get_page("Italy", sector='manufacturing')
+	# print(pages_all)
+	# for pages in pages_all[:2]:
+	# 	for page in pages:
+	# 		print(page)
 
 
 
