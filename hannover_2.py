@@ -5,13 +5,24 @@ from pyvirtualdisplay import Display
 from selenium import webdriver
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
+from openpyxl import Workbook
+import csv
 import time
 import re
 
 
 BASE_URL = 'http://www.hannovermesse.de/en/exhibition/exhibitors-products/'
 SITE_URL = 'http://www.hannovermesse.de'
+FILE = 'x_csv_hannover_scrape2.csv'
+# FILE = 'x_hannover_scrape2.xlsx'
 
+sectors = [
+		'Manufacturing industry',
+		'Construction/construction industry',
+		'Transportation and storage',
+		'Information and communication',
+		'Human health and social work activities',
+	]
 
 
 def find_country():
@@ -43,15 +54,12 @@ def get_html(url):
 def get_company(html):
 	comp = []
 	soup = BeautifulSoup(html,'html.parser')
-	# companies = soup.find('div', class_='col l-col7 m-col9 s-col12')
-	# print(companies)
 	companies = soup.find_all('a', class_='search-link')
 	companies = ['{}{}'.format(SITE_URL, el['href']) for el in companies]
-	# companies = [company for company in companies if companies.index(company)%2 == 0]
 	for company in companies:
 		if company not in comp:
 			comp.append(company)
-	print(len(comp))
+	# print(len(comp))
 	return comp
 
 
@@ -86,8 +94,19 @@ def get_page(country, sector):
 		# change cheack box style by display: block
 		browser.execute_script("document.getElementById('searchAP\:zb\:289\:r').style.display='block';")
 
+		time.sleep(3)
+
+		print(browser.find_element_by_css_selector('#searchAP\:zb\:289\:r'))
+
 		# click the Transportation and storage
 		browser.find_element_by_css_selector('#searchAP\:zb\:289\:r').click()
+
+	elif sector == 'construction':
+		# change cheack box style by display: block
+		browser.execute_script("document.getElementById('searchAP\:zb\:237\:r').style.display='block';")
+
+		# click the Transportation and storage
+		browser.find_element_by_css_selector('#searchAP\:zb\:237\:r').click()
 
 
 	# click the button: search
@@ -111,15 +130,98 @@ def get_page(country, sector):
 			# add companies to company_pages
 			company_pages.append(get_company(browser.page_source))
 	except :
-		print("Not paginator")
+		pass
 
 	# browser.quit()
 	# display.stop()	
 
 	return company_pages
 
+def parse(html, sector):
+	soup = BeautifulSoup(html,'html.parser')
+	companies = []
+
+	try:
+		name = soup.find('h1', itemprop='name')
+		name = name.get_text()
+	except:
+		name = None
+
+	try:
+		website = soup.find('a', class_="textLink icon-external-link")
+		website = website['href']
+	except:
+		website = None
+
+	companies.append({
+		'name': name,
+		'website': website,
+		'sector': sector,
+	})
+	
+	return companies
 
 
+# def save(file, companies):
+# 	wb = Workbook()
+
+# 	std = wb.get_sheet_by_name('Sheet')
+# 	wb.remove_sheet(std)
+
+# 	ws1 = wb.create_sheet('Italy')
+
+# 	header = ['Name', 'Website', 'Sector']
+# 	max_col = 3
+# 	for col in range(1, max_col+1):
+# 		ws1.cell(row=1, column=col, value=header[col-1])
+
+# 	row_max = len(companies)
+# 	row_max_ind = row_max + 2
+# 	print(row_max)
+# 	print(row_max_ind)
+
+# 	for row in range(2, row_max_ind):
+# 		comps = [companies[row-2]['name'], companies[row-2]['website'], companies[row-2]['sector']]
+# 		# print(comps)
+# 		for col in range(1, max_col+1):
+# 			ws1.cell(row=row, column=col, value=comps[col-1])
+
+# 	# print(companies[0])
+# 	# last_col = row_max
+
+# 	wb.save(file)
+
+def save_country(file, companies):
+	'''	Save single country file ''' 
+
+	with open(path_file, 'a') as csvfile:
+		writer = csv.writer(csvfile)
+		writer.writerow(('Name', 'Website', 'Sector'))
+
+		for company in companies:
+			writer.writerow((company['name'], company['website'], company['sector']))
+		
+
+
+def main(country, sector):
+
+	companies = []
+	
+	# for sector in sectors:
+	# 	print(sector)
+
+
+	# pages_all = get_page("Italy", sector='manufacturing')
+	pages_all = get_page(country, sector)
+	# print(pages_all)
+	for pages in pages_all:
+		for page in pages:
+			# print(page)
+			companies.extend(parse(get_html(page), sector=sector))
+			# print(companies)
+
+	print(companies)
+	save(FILE, companies)
 
 
 if __name__ == '__main__':
@@ -132,17 +234,11 @@ if __name__ == '__main__':
 	# countries = find_country()
 	# print(countries)
 
+	# main(country='Italy', sector='manufacturing')
+	main(country='Italy', sector='transportation')
 
-	pages_all = get_page("Italy", sector='manufacturing')
-	# pages_all = get_page("Italy", sector='transportation')
-	print(pages_all)
-	# for pages in pages_all:
-	# 	for page in pages:
-	# 		print(page)
 
 	
-
-
 
 
 	# browser = webdriver.Firefox()  # Your browser will open, Python might ask for permission
