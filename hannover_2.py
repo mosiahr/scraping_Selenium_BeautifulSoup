@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 from pyvirtualdisplay import Display
 from selenium import webdriver
 from urllib.request import urlopen
@@ -13,8 +14,9 @@ import re
 
 BASE_URL = 'http://www.hannovermesse.de/en/exhibition/exhibitors-products/'
 SITE_URL = 'http://www.hannovermesse.de'
-FILE = 'x_csv_hannover_scrape2.csv'
-# FILE = 'x_hannover_scrape2.xlsx'
+FILE = 'hannovermesse_scrape2.xlsx'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 sectors = [
 		'Manufacturing industry',
@@ -59,15 +61,14 @@ def get_company(html):
 	for company in companies:
 		if company not in comp:
 			comp.append(company)
-	# print(len(comp))
 	return comp
 
 
 def get_page(country, sector):
 	company_pages = []
 
-	# display = Display(visible=0, size=(800, 600))
-	# display.start()
+	display = Display(visible=0, size=(800, 600))
+	display.start()
 
 	browser = webdriver.Firefox()  # Your browser will open, Python might ask for permission
 	browser.get(BASE_URL) 
@@ -83,31 +84,40 @@ def get_page(country, sector):
 	show_all = browser.find_elements_by_css_selector('.toggleLimited')
 	show_all[2].click()
 
-	if sector == 'manufacturing':
+	if sector == sectors[0]:
 		# change cheack box style by display: block
 		browser.execute_script("document.getElementById('searchAP\:zb\:35\:r').style.display='block';")
 
 		# click the Manufacturing industry
 		browser.find_element_by_css_selector('#searchAP\:zb\:35\:r').click()
 
-	elif sector == 'transportation':
+	elif sector == sectors[1]:
+		# change cheack box style by display: block
+		browser.execute_script("document.getElementById('searchAP\:zb\:237\:r').style.display='block';")
+
+		# click the Construction/construction industry
+		browser.find_element_by_css_selector('#searchAP\:zb\:237\:r').click()
+
+	elif sector == sectors[2]:
 		# change cheack box style by display: block
 		browser.execute_script("document.getElementById('searchAP\:zb\:289\:r').style.display='block';")
-
-		time.sleep(3)
-
-		print(browser.find_element_by_css_selector('#searchAP\:zb\:289\:r'))
 
 		# click the Transportation and storage
 		browser.find_element_by_css_selector('#searchAP\:zb\:289\:r').click()
 
-	elif sector == 'construction':
+	elif sector == sectors[3]:
 		# change cheack box style by display: block
-		browser.execute_script("document.getElementById('searchAP\:zb\:237\:r').style.display='block';")
+		browser.execute_script("document.getElementById('searchAP\:zb\:316\:r').style.display='block';")
 
-		# click the Transportation and storage
-		browser.find_element_by_css_selector('#searchAP\:zb\:237\:r').click()
+		# click the Information and communication
+		browser.find_element_by_css_selector('#searchAP\:zb\:316\:r').click()
 
+	elif sector == sectors[4]:
+		# change cheack box style by display: block
+		browser.execute_script("document.getElementById('searchAP\:zb\:405\:r').style.display='block';")
+
+		# click the Human health and social work activities
+		browser.find_element_by_css_selector('#searchAP\:zb\:405\:r').click()
 
 	# click the button: search
 	browser.find_element_by_css_selector('#searchAP\:searchButton2').click()
@@ -132,8 +142,8 @@ def get_page(country, sector):
 	except :
 		pass
 
-	# browser.quit()
-	# display.stop()	
+	browser.quit()
+	display.stop()	
 
 	return company_pages
 
@@ -143,13 +153,13 @@ def parse(html, sector):
 
 	try:
 		name = soup.find('h1', itemprop='name')
-		name = name.get_text()
+		name = name.get_text().replace(';', '')
 	except:
 		name = None
 
 	try:
 		website = soup.find('a', class_="textLink icon-external-link")
-		website = website['href']
+		website = website['href'].replace(';', '')
 	except:
 		website = None
 
@@ -158,43 +168,13 @@ def parse(html, sector):
 		'website': website,
 		'sector': sector,
 	})
-	
 	return companies
 
-
-# def save(file, companies):
-# 	wb = Workbook()
-
-# 	std = wb.get_sheet_by_name('Sheet')
-# 	wb.remove_sheet(std)
-
-# 	ws1 = wb.create_sheet('Italy')
-
-# 	header = ['Name', 'Website', 'Sector']
-# 	max_col = 3
-# 	for col in range(1, max_col+1):
-# 		ws1.cell(row=1, column=col, value=header[col-1])
-
-# 	row_max = len(companies)
-# 	row_max_ind = row_max + 2
-# 	print(row_max)
-# 	print(row_max_ind)
-
-# 	for row in range(2, row_max_ind):
-# 		comps = [companies[row-2]['name'], companies[row-2]['website'], companies[row-2]['sector']]
-# 		# print(comps)
-# 		for col in range(1, max_col+1):
-# 			ws1.cell(row=row, column=col, value=comps[col-1])
-
-# 	# print(companies[0])
-# 	# last_col = row_max
-
-# 	wb.save(file)
 
 def save_country(file, companies):
 	'''	Save single country file ''' 
 
-	with open(path_file, 'a') as csvfile:
+	with open(file, 'w') as csvfile:
 		writer = csv.writer(csvfile)
 		writer.writerow(('Name', 'Website', 'Sector'))
 
@@ -202,104 +182,60 @@ def save_country(file, companies):
 			writer.writerow((company['name'], company['website'], company['sector']))
 		
 
-
-def main(country, sector):
-
-	companies = []
-	
-	# for sector in sectors:
-	# 	print(sector)
+def csv_to_xlsx(file, worksheet):
+	with open(file, 'r') as f:
+		for row in csv.reader(f):
+			worksheet.append(row)
 
 
-	# pages_all = get_page("Italy", sector='manufacturing')
-	pages_all = get_page(country, sector)
-	# print(pages_all)
-	for pages in pages_all:
-		for page in pages:
-			# print(page)
-			companies.extend(parse(get_html(page), sector=sector))
-			# print(companies)
+def save_csv_to_xlsx():
+	wb = Workbook()
 
-	print(companies)
-	save(FILE, companies)
+	std = wb.get_sheet_by_name('Sheet')
+	wb.remove_sheet(std)
+
+	files = os.listdir("companies/")
+	files.sort()
+	worksheet = [wb.create_sheet(file[:-4]) for file in files]
+
+	for i in range(0, len(files)):
+		csv_to_xlsx('./companies/{}'.format(files[i]), worksheet[i])	
+
+	wb.save(FILE)
+
+
+def main():
+	print('Scrape START')
+	print('-------------------------------')
+	# create directory
+	dir_companies = BASE_DIR + "/companies"
+	if not os.path.exists(dir_companies):
+	    os.mkdir(dir_companies)
+
+	# find country
+	print("SOURCE COUNTRIES")
+	countries = find_country()
+	count = 0
+	for country in countries:
+		print("SOURCE:", country)
+		companies = []
+		for sector in sectors:
+			pages_all = get_page(country, sector)
+			for pages in pages_all:
+				for page in pages:
+					print("ADD page: % s" % page)
+					companies.extend(parse(get_html(page), sector))
+					count += 1
+
+		companies.sort(key=lambda k : k['name'])
+		save_country(dir_companies + '/' + country + '.csv', companies)
+	save_csv_to_xlsx()
+	print('Scrape 100%')
+	print('-------------------------------')
+	print('Scrape END')
+	print('-------------------------------')
+	print('Companies found: {}'.format(count))
 
 
 if __name__ == '__main__':
-	print('Scrape START')
-	print('-------------------------------')
-	# display = Display(visible=0, size=(800, 600))
-	# display.start()
-
-	# find all countries
-	# countries = find_country()
-	# print(countries)
-
-	# main(country='Italy', sector='manufacturing')
-	main(country='Italy', sector='transportation')
-
-
-	
-
-
-	# browser = webdriver.Firefox()  # Your browser will open, Python might ask for permission
-	# browser.get(URL)  
-
-
-
-
-
-		# print(browser.get_window_position())
-		# browser.execute_script("window.scrollTo(0, 1200)")
-
-		# elem = browser.find_element_by_class_name('<strong>European Union</strong>')
-		# elem = browser.find_element_by_class_name('level1')
-
-		# print(elem)
-		# elem.click()
-
-		# driver.find_element_by_xpath("html/body/div[2]/div[4]/div/div[5]/div/div/div/div[1]/div/div[2]/div[1]/ol/li[3]/ol/li[1]/div/div[2]/h3/a").click()
-		# driver.find_elements_by_xpath("//*[contains(text(), 'portnovschool')]")
-
-		# el = browser.find_elements_by_xpath("html/body/page-wrapper/")
-	# browser.execute_script("document.getElementById('searchAP\:j_idt107').style.display='block';")
-	# browser.find_element_by_css_selector('#searchAP\:j_idt107').click()
-	# 	 time.sleep(3)
-
-
-	# browser.find_elements_by_xpath("//*[contains(text(), 'European Union')]")[0].click()
-
-	
-
-	# browser.find_elements_by_xpath("//*[contains(text(), '{}')]".format(country))[0].click()
-
-
-		# time.sleep(3)
-		# show_all = browser.find_element_by_link_text("Show all")
-		# browser.find_elements_by_xpath("//*[contains(text(), 'Show all')]")[0].click()
-
-
-		# browser.execute_script("window.scrollTo(0, 100)")
-
-	# open show all
-	# show_all = browser.find_elements_by_css_selector('.toggleLimited')
-	# show_all[2].click()
-
-	# # change cheack box style by display: block
-	# browser.execute_script("document.getElementById('searchAP\:zb\:35\:r').style.display='block';")
-	# cheack_box = browser.find_element_by_css_selector('#searchAP\:zb\:35\:r')
-	# cheack_box.click()
-
-	# search_button = browser.find_element_by_css_selector('#searchAP\:searchButton2')
-	# search_button.click()
-
-		# browser.execute_script("window.scrollTo(0, 1600)")
-		# search = search.find_elements_by_xpath(".//span")[0]
-		# search = search.find_element_by_xpath("./div[0]")
-		# search = search.find_element_by_class_name('checkBox')
-		# search = search.find_element_by_css_selector('.filter')
-		# search.find_element_by_class_name()
-
-
-
-		# browser.quit()
-		# display.stop()
+	main()
