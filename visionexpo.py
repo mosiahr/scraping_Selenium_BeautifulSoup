@@ -109,7 +109,7 @@ def scraping(html):
         cat_li = soup.find('li', class_='formSection attributeattribute-dataType-categorytreenonparentselect attribute-Id-103783 attribute-Name-productsandservices twocolumn')
         categories = [
             (
-                re.sub('\s+', ' ', dd.contents[0]).strip(), ', '.join([re.sub(r'\s+', ' ', li.text).strip()
+                re.sub(r'\s+', ' ', dd.contents[0]).strip(), ', '.join([re.sub(r'\s+', ' ', li.text).strip()
                                                                        for li in dd.contents[1].find_all('li')])
          )
                 for dd in cat_li.find_all('dd')
