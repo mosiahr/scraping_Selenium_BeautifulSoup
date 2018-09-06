@@ -1,0 +1,15 @@
+autopy==1.0.1
+beautifulsoup4==4.6.3
+certifi==2018.8.24
+chardet==3.0.4
+cssselect==1.0.3
+idna==2.7
+linecache2==1.0.0
+lxml==4.2.4
+pyquery==1.4.0
+requests==2.19.1
+selenium==3.14.0
+six==1.11.0
+traceback2==1.4.0
+unittest2==1.1.0
+urllib3==1.23
